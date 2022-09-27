@@ -2,7 +2,7 @@
 v2i :: struct {
     x, y: int;
 }
-make_v2i :: (x: int, y: int) -> v2i {
+make_v2i :: (x: int, y: int) -> v2i #must {
     v: v2i = ---;
     v.x = x;
     v.y = y;
@@ -634,6 +634,8 @@ time_elapsed :: (at: Apollo_Time) -> Apollo_Time {
 }
 
 #scope_file
+
+#import "Basic";
 
 W :: #import "Windows";
 #import "Machine_X64";
