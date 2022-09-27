@@ -356,7 +356,7 @@ pool_alloc :: (p: *Pool, size: int) -> *void {
                 pool_count := p.alloc_size/p.chunk_size;
                 chunk_size := p.chunk_size - POOL_HEADER_SIZE;
                 np := New(Pool);
-                <<np = make_pool(pool_count, chunk_size);
+                <<np = make_pool(pool_count, chunk_size, flags=p.flags);
                 p.next = np;
             }
             return pool_alloc(p.next, size);
