@@ -45,14 +45,14 @@ GIGA :: (v: $T) -> T {
 }
 
 // Note(jesse): This isn't right... It's not asserting
-invalid_path :: (loc := #caller_location) #expand {
-    `assert(false, "invalid path", loc = loc);
+invalid_path :: inline (loc := #caller_location) {
+    assert(false, "invalid path", loc = loc);
 }
-invalid_case :: (loc := #caller_location) #expand {
-    `assert(false, "invalid case", loc = loc);
+invalid_case :: inline (loc := #caller_location) {
+    assert(false, "invalid case", loc = loc);
 }
-unimplemented :: (loc := #caller_location) #expand {
-    `assert(false, "not implemented", loc = loc);
+unimplemented :: inline (loc := #caller_location) {
+    assert(false, "not implemented", loc = loc);
 }
 
 transmute :: inline ($T: Type, var: $R) -> T {
