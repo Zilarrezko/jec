@@ -319,7 +319,7 @@ make_mandala :: (size: int) -> Mandala {
 
 push_size :: (m: *Mandala, _size: int, $zero: bool = false) -> *void {
     size := (_size + MANDALA_ALIGN - 1) & ~(MANDALA_ALIGN - 1);
-    assert(m.cur + size > m.cap, "Mandala blown");
+    assert(m.cur + size <= m.cap, "Mandala blown");
     r: *void = m.mem + m.cur;
     m.cur += size;
     return r;
