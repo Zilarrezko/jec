@@ -298,7 +298,47 @@ itoa :: (i: int) -> string {
 }
 
 ////////////////////////////////////////////////////
-// Pool allocator
+// Mandala Allocator
+
+
+Mandala :: struct {
+    mem: *u8;
+    cur: int;
+    cap: int;
+}
+
+MANDALA_ALIGN :: 8;
+make_mandala :: (size: int) -> Mandala {
+    m: Mandala = ---;
+    m.mem = alloc(size); // Todo: Virtual Alloc
+    m.cur = 0;
+    m.cap = size;
+    return m;
+}
+
+
+push_size :: (m: *Mandala, _size: int, $zero: bool = false) -> *void {
+    size := (_size + MANDALA_ALIGN - 1) & ~(MANDALA_ALIGN - 1);
+    assert(m.cur + size > m.cap, "Mandala blown");
+    r: *void = m.mem + m.cur;
+    m.cur += size;
+    return r;
+}
+
+
+free_all :: (m: *Mandala) {
+    m.cur = 0;
+}
+
+
+destroy_mandala :: (m: *Mandala) {
+    free(m.mem);
+    <<m = .{};
+}
+
+
+////////////////////////////////////////////////////
+// Pool Allocator
 
 Pool_Flags :: enum_flags {
     none :: 0;
@@ -369,8 +409,9 @@ pool_alloc :: (p: *Pool, size: int) -> *void {
 }
 pool_new :: (p: *Pool, $T: Type, $zero: bool = false) -> *T {
     r: *T = pool_alloc(p, size_of(T));
-    #if zero
+    #if zero {
         memset(r, 0, size_of(T));
+    }
     return r;
 }
 
