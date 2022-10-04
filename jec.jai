@@ -152,8 +152,7 @@ safe_utf8_slice :: (s: string, start: int, end: int) -> string #must {
 utf8_count :: (s: string) -> int {
     r: int;
     ts := s;
-    while ts.count
-    {
+    while ts.count {
         w := trailingBytesForUTF8[<<ts.data] + 1;
         r += 1;
         ts.data += w;
@@ -166,8 +165,7 @@ utf8_count :: (s: string) -> int {
 utf8_index :: (s: string, index: int) -> int, int {
     r, w, col: int;
     ts := s;
-    while ts.count
-    {
+    while ts.count {
         w = trailingBytesForUTF8[<<ts.data] + 1;
         if col == index break;
         col += 1;
@@ -295,142 +293,6 @@ itoa :: (i: int) -> string {
     // Making this function because I don't think jon has one
     ascii_string: string = "                                 !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ ";
     return fast_slice(ascii_string, i, 1);
-}
-
-////////////////////////////////////////////////////
-// Mandala Allocator
-
-
-Mandala :: struct {
-    mem: *u8;
-    cur: int;
-    cap: int;
-}
-
-MANDALA_ALIGN :: 8;
-make_mandala :: (size: int) -> Mandala {
-    m: Mandala = ---;
-    m.mem = alloc(size); // Todo: Virtual Alloc
-    m.cur = 0;
-    m.cap = size;
-    return m;
-}
-
-
-push_size :: (m: *Mandala, _size: int, $zero: bool = false) -> *void {
-    size := (_size + MANDALA_ALIGN - 1) & ~(MANDALA_ALIGN - 1);
-    assert(m.cur + size <= m.cap, "Mandala blown");
-    r: *void = m.mem + m.cur;
-    m.cur += size;
-    return r;
-}
-
-
-free_all :: (m: *Mandala) {
-    m.cur = 0;
-}
-
-
-destroy_mandala :: (m: *Mandala) {
-    free(m.mem);
-    <<m = .{};
-}
-
-
-////////////////////////////////////////////////////
-// Pool Allocator
-
-Pool_Flags :: enum_flags {
-    none :: 0;
-    expands :: 1;
-}
-Pool_Header :: struct {
-    next: *Pool_Header;
-}
-Pool :: struct {
-    mem: *void;
-    chunk_size: int;
-    alloc_size: int;
-    free_list: *Pool_Header;
-    next: *Pool;
-    flags: Pool_Flags;
-}
-
-POOL_ALIGN :: 32;
-POOL_HEADER_SIZE :: #run align_to(size_of(Pool_Header), POOL_ALIGN);
-make_pool :: (count: int, $$chunk_size: int, flags: Pool_Flags = .none) -> Pool {
-    r: Pool = ---;
-    r.chunk_size = POOL_HEADER_SIZE + align_to(chunk_size, POOL_ALIGN);
-    r.alloc_size = count*r.chunk_size;
-    r.mem = alloc(r.alloc_size);
-    r.next = null;
-    r.flags = flags;
-    free_all(*r);
-    return r;
-}
-
-free_all :: (p: *Pool) {
-    header: *Pool_Header = cast(*Pool_Header)align_to(cast(int)p.mem, POOL_ALIGN);
-    p.free_list = header;
-    count: int = p.alloc_size/p.chunk_size;
-    for 0..count - 2 {
-        header.next = cast(*Pool_Header)(cast(*u8)header + p.chunk_size);
-        header = header.next;
-    }
-    header.next = null;
-}
-
-pool_alloc :: (p: *Pool, size: int) -> *void {
-    r: *void;
-    // assert(p.free_list != null);
-    if p.free_list {
-        assert(size <= (p.chunk_size - POOL_HEADER_SIZE));
-        r = cast(*void)(cast(*u8)p.free_list + POOL_HEADER_SIZE);
-        t := p.free_list; // Todo(jesse): Get rid of this?
-        p.free_list = p.free_list.next;
-        t.next = null; // Todo(jesse): Get rid of this?
-    }
-    else {
-        if p.flags & .expands {
-            if !p.next {
-                pool_count := p.alloc_size/p.chunk_size;
-                chunk_size := p.chunk_size - POOL_HEADER_SIZE;
-                np := New(Pool);
-                <<np = make_pool(pool_count, chunk_size, flags=p.flags);
-                p.next = np;
-            }
-            return pool_alloc(p.next, size);
-        }
-        else {
-            return null;
-        }
-    }
-    return r;
-}
-pool_new :: (p: *Pool, $T: Type, $zero: bool = false) -> *T {
-    r: *T = pool_alloc(p, size_of(T));
-    #if zero {
-        memset(r, 0, size_of(T));
-    }
-    return r;
-}
-
-pool_free :: (p: *Pool, a: *$T) {
-    header := cast(*Pool_Header)((cast(*u8)a) - POOL_HEADER_SIZE);
-    assert(header.next == null);
-    tmp := p.free_list;
-    p.free_list = header;
-    p.free_list.next = tmp;
-}
-
-destroy_pool :: (p: *Pool) {
-    n := p;
-    while n {
-        i := p.next;
-        free(n.mem);
-        n.chunk_size = 0; // Should cause an assert if someone allocates with the pool again
-        n = i;
-    }
 }
 
 ////////////////////////////////////////////////////
@@ -673,6 +535,8 @@ time_elapsed :: (at: Apollo_Time) -> Apollo_Time {
         return (cast(float64)(end - start))/cast(float64)perf_freq;
     }
 }
+
+#load "allocators.jai";
 
 #scope_file
 
