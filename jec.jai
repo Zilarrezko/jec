@@ -188,10 +188,8 @@ toupper :: (c: u8) -> u8 {
 file_part :: (filepath: string) -> string {
     // Todo(jesse): More efficient to go backwards and exit at first seperator
     last: int;
-    for 0..filepath.count - 1
-    {
-        if filepath[it] == #char "\\" || filepath[it] == #char "/"
-        {
+    for 0..filepath.count - 1 {
+        if filepath[it] == #char "\\" || filepath[it] == #char "/" {
             last = it + 1;
         }
     }
@@ -199,8 +197,7 @@ file_part :: (filepath: string) -> string {
 }
 file_part_no_ext :: (filepath: string) -> string {
     s := file_part(filepath);
-    for 0..s.count - 1
-    {
+    for 0..s.count - 1 {
         if s[it] == #char "." return fast_slice(s, 0, it);
     }
     return s;
