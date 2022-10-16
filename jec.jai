@@ -103,6 +103,10 @@ align_to :: (v: int, $align: int) -> int {
     return (v + (align - 1)) & ~(align - 1);
 }
 
+append :: inline (arr: *[..]$T, v: T) {
+    array_add(arr, v);
+}
+
 // Note(jesse): The idea is that basically if it would error, it just returns an empty string
 safe_slice :: inline (s: string, start: int, end: int) -> string #must {
     if start < 0 || end < 0 {
