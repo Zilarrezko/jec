@@ -91,70 +91,64 @@ destroy :: (r: *Ring) {
 ////////////////////////////////////////////////////
 // Pool Allocator
 
-
-Pool_Header :: struct {
-    next: *Pool_Header;
-}
 Pool :: struct {
-    mem: *void;
+    mem: *u8;
+    cur: int;
+    cap: int;
     chunk_size: int;
-    alloc_size: int;
-    free_list: *Pool_Header;
-    next: *Pool;
+    block_size: int;
+    first_free: *Pool_Header; // Free List
+}
+Pool_Header :: struct {
+    next: *Pool_Header; // Free list
 }
 
-POOL_ALIGN :: 8;
-POOL_HEADER_SIZE :: #run align_to(size_of(Pool_Header), POOL_ALIGN);
-make_pool :: (count: int, $$chunk_size: int) -> Pool {
-    r: Pool = ---;
-    r.chunk_size = POOL_HEADER_SIZE + align_to(chunk_size, POOL_ALIGN);
-    r.alloc_size = count*r.chunk_size;
-    r.mem = alloc(r.alloc_size);
-    r.next = null;
-    free_all(*r);
+
+make_pool :: (size: int, chunk_size: int) -> Pool {
+    p: Pool;
+    p.cap = size;
+    p.chunk_size = chunk_size;
+    p.block_size = p.chunk_size + size_of(Pool_Header);
+    p.mem = alloc(size);
+    p.first_free = cast(*Pool_Header)p.mem;
+    p.cur = p.block_size;
+    return p;
+}
+
+
+alloc :: (p: *Pool, size: int) -> *void {
+    r: *void;
+    if p.first_free {
+        r = cast(*void)(p.first_free + 1);
+        p.first_free = p.first_free.next;
+        if p.first_free == null && p.cur + p.block_size <= p.cap {
+            p.first_free = cast(*Pool_Header)(p.mem + p.cur);
+            p.cur += p.block_size;
+        }
+    }
     return r;
 }
+
+
+free :: (p: *Pool, mem: *void) {
+    h: *Pool_Header = (cast(*Pool_Header)mem) - 1;
+    h.next = p.first_free;
+    p.first_free = h;
+}
+
 
 free_all :: (p: *Pool) {
-    header: *Pool_Header = cast(*Pool_Header)align_to(cast(int)p.mem, POOL_ALIGN);
-    p.free_list = header;
-    count: int = p.alloc_size/p.chunk_size;
-    for 0..count - 2 {
-        header.next = cast(*Pool_Header)(cast(*u8)header + p.chunk_size);
-        header = header.next;
+    at: *u8 = p.mem + size_of(Pool_Header);
+    while at < p.mem + p.cur {
+        free(p, at);
+        at += p.chunk_size + size_of(Pool_Header);
     }
-    header.next = null;
+    p.first_free = cast(*Pool_Header)p.mem;
+    p.cur = size_of(Pool_Header) + p.chunk_size;
 }
 
-pool_alloc :: (p: *Pool, size: int) -> *void {
-    r: *void;
-    assert(p.free_list != null, "Out of pool slots");
-    if p.free_list {
-        assert(size <= (p.chunk_size - POOL_HEADER_SIZE));
-        r = cast(*void)(cast(*u8)p.free_list + POOL_HEADER_SIZE);
-        t := p.free_list; // Todo(jesse): Get rid of this?
-        p.free_list = p.free_list.next;
-        t.next = null; // Todo(jesse): Get rid of this?
-    }
-    return r;
-}
-pool_new :: (p: *Pool, $T: Type, $zero: bool = false) -> *T {
-    r: *T = pool_alloc(p, size_of(T));
-    #if zero {
-        memset(r, 0, size_of(T));
-    }
-    return r;
-}
 
-pool_free :: (p: *Pool, a: *$T) {
-    header := cast(*Pool_Header)((cast(*u8)a) - POOL_HEADER_SIZE);
-    assert(header.next == null);
-    tmp := p.free_list;
-    p.free_list = header;
-    p.free_list.next = tmp;
-}
-
-destroy_pool :: (p: *Pool) {
+destroy :: (p: *Pool) {
     free(p.mem);
-    <<p = .{};
+    <<p = Pool.{};
 }

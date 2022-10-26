@@ -16,18 +16,24 @@ v4 :: Vector4;
 f32 :: float32;
 f64 :: float64;
 
-Rectangle :: struct {
+Rect :: struct {
     x0, y0: float32;
     x1, y1: float32;
 }
 
-// Specify RGB?
+Recti :: struct {
+    x0, y0: int;
+    x1, y1: int;
+}
+
 Color :: struct {
-    e: [4]float;
-    #place e;
     r, g, b, a: float;
-    #place e;
+    #place r;
     rgb: [3]float;
+    #place r;
+    rgba: [4]float;
+    #place r;
+    e: [4]float;
 }
 
 PI32 :: 3.14159265358927;
@@ -216,8 +222,9 @@ path_part :: (filepath: string) -> string {
     return fast_slice(filepath, 0, last);
 }
 unix_seperators :: (filepath: *string) {
-    for 0..filepath.count if filepath.data[it] == #char "\\" {
-        filepath.data[it] = #char "/";
+    for 0..filepath.count - 1 {
+        if filepath.data[it] == #char "\\"
+            filepath.data[it] = #char "/";
     }
 }
 
