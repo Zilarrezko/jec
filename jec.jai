@@ -118,6 +118,11 @@ join :: (strs: ..string, allocator: Allocator) -> string {
     return String.join(..strs);
 }
 
+character_utf32_to_utf8 :: (ch: u32, allocator: Allocator) -> string {
+    Basic.push_allocator(allocator);
+    return character_utf32_to_utf8(ch);
+}
+
 // Note(jesse): The idea is that basically if it would error, it just returns an empty string
 safe_slice :: inline (s: string, start: int, end: int) -> string #must {
     if start < 0 || end < 0 {
