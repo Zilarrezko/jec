@@ -52,13 +52,13 @@ GIGA :: (v: $T) -> T {
 
 // Note(jesse): This isn't right... It's not asserting
 invalid_path :: inline (loc := #caller_location) {
-    assert(false, "invalid path", loc = loc);
+    Basic.assert(false, "invalid path", loc = loc);
 }
 invalid_case :: inline (loc := #caller_location) {
-    assert(false, "invalid case", loc = loc);
+    Basic.assert(false, "invalid case", loc = loc);
 }
 unimplemented :: inline (loc := #caller_location) {
-    assert(false, "not implemented", loc = loc);
+    Basic.assert(false, "not implemented", loc = loc);
 }
 
 transmute :: inline ($T: Type, var: $R) -> T {
@@ -113,6 +113,11 @@ append :: inline (arr: *[..]$T, v: T) {
     array_add(arr, v);
 }
 
+join :: (strs: ..string, allocator: Allocator) -> string {
+    Basic.push_allocator(allocator);
+    return String.join(..strs);
+}
+
 // Note(jesse): The idea is that basically if it would error, it just returns an empty string
 safe_slice :: inline (s: string, start: int, end: int) -> string #must {
     if start < 0 || end < 0 {
@@ -151,7 +156,7 @@ safe_utf8_slice :: (s: string, start: int, end: int) -> string #must {
         }
         ts.data += bytes;
         ts.count -= bytes;
-        assert(ts.count >= 0);
+        Basic.assert(ts.count >= 0);
         cp, bytes, success = character_utf8_to_utf32(ts.data, ts.count);
         col += 1;
         bytes_in += bytes;
@@ -460,7 +465,7 @@ profile_end_frame :: () {
             if elem[i].name.data == elem[j].name.data {
                 elem[i].cycles += elem[j].cycles;
                 elem[i].hits += elem[j].hits;
-                array_unordered_remove_by_index(*profiler.elements, j);
+                Basic.array_unordered_remove_by_index(*profiler.elements, j);
                 elem = profiler.elements;
                 j -= 1;
             }
@@ -473,7 +478,7 @@ profile_end_frame :: () {
     for i: 0..elem.count - 2 {
         for j: i + 1..elem.count - 1 {
             if elem[i].cycles < elem[j].cycles {
-                elem[i], elem[j] = swap(elem[i], elem[j]);
+                elem[i], elem[j] = Basic.swap(elem[i], elem[j]);
             }
         }
     }
@@ -487,9 +492,9 @@ dump_profiler :: () {
     dots := "....................................................";
     max_dot_count := dots.count;
     for profiler.elements {
-        cycles_str := tprint("%cyc", formatInt(it.cycles, digits_per_comma=3, comma_string=","));
+        cycles_str := Basic.tprint("%cyc", Basic.formatInt(it.cycles, digits_per_comma=3, comma_string=","));
         dots.count = max_dot_count - it.name.count - cycles_str.count;
-        print("%0%0%\n", it.name, dots, cycles_str);
+        Basic.print("%0%0%\n", it.name, dots, cycles_str);
     }
 }
 
@@ -503,7 +508,7 @@ time_scope :: (scope_name: string = "unknown") #expand {
     start := current_time_monotonic();
     `defer {
         duration := current_time_monotonic() - start;
-        log(tprint("% %us\n", scope_name, to_microseconds(duration)));
+        log(Basic.tprint("% %us\n", scope_name, to_microseconds(duration)));
     }
 }
 
@@ -511,16 +516,16 @@ tick_scope :: (scope_name: string = "unknown") #expand {
     start := rdtsc();
     `defer {
         end := rdtsc();
-        log(tprint("% % cycles\n", scope_name, end - start));
+        log(Basic.tprint("% % cycles\n", scope_name, end - start));
     }
 }
 
-time_start :: () -> Apollo_Time {
-    return current_time_monotonic();
+time_start :: () -> Basic.Apollo_Time {
+    return Basic.current_time_monotonic();
 }
 
-time_elapsed :: (at: Apollo_Time) -> Apollo_Time {
-    return current_time_monotonic() - at;
+time_elapsed :: (at: Basic.Apollo_Time) -> Basic.Apollo_Time {
+    return Basic.current_time_monotonic() - at;
 }
 
 #if OS == .WINDOWS {
@@ -544,10 +549,15 @@ time_elapsed :: (at: Apollo_Time) -> Apollo_Time {
 
 #scope_file
 
-#import "Basic";
+Basic :: #import "Basic";
+
+operator- :: inline (lhs: $L, rhs: $R) -> L {
+   return Basic.operator-(lhs, rhs);
+}
 
 W :: #import "Windows";
 #import "Machine_X64";
 
 #import "Math";
 #import "Unicode";
+String :: #import "String";

@@ -12,7 +12,7 @@ Mandala :: struct {
 MANDALA_ALIGN :: 8;
 make_mandala :: (size: int) -> Mandala {
     m: Mandala = ---;
-    m.mem = alloc(size); // Todo: Virtual Alloc
+    m.mem = Basic.alloc(size); // Todo: Virtual Alloc
     m.cur = 0;
     m.cap = size;
     return m;
@@ -21,7 +21,7 @@ make_mandala :: (size: int) -> Mandala {
 
 push_size :: (m: *Mandala, _size: int, $zero: bool = false) -> *void {
     size := (_size + MANDALA_ALIGN - 1) & ~(MANDALA_ALIGN - 1);
-    assert(m.cur + size <= m.cap, "Mandala overtaken"); // Assert is slow
+    Basic.assert(m.cur + size <= m.cap, "Mandala overtaken"); // Assert is slow
     r: *void = m.mem + m.cur;
     m.cur += size;
     return r;
@@ -34,9 +34,22 @@ free_all :: (m: *Mandala) {
 
 
 destroy :: (m: *Mandala) {
-    free(m.mem);
+    Basic.free(m.mem);
     <<m = .{};
 }
+
+
+
+mandala_allocator_proc :: (mode: Allocator_Mode, size: s64, old_size: s64, old_memory_pointer: *void, proc_data: *void) -> *void {
+    r: *void;
+    if #complete mode == {
+        case .ALLOCATE; r = push_size(cast(*Mandala)proc_data, size);
+        case .RESIZE;   invalid_case();
+        case .FREE;
+    }
+    return r;
+}
+
 
 
 ////////////////////////////////////////////////////
@@ -52,7 +65,7 @@ Ring :: struct {
 
 make_ring :: (size: int) -> Ring {
     r: Ring;
-    r.mem = alloc(size);
+    r.mem = Basic.alloc(size);
     r.cap = size;
     return r;
 }
@@ -61,7 +74,7 @@ make_ring :: (size: int) -> Ring {
 RING_ALIGN :: 8;
 alloc :: (r: *Ring, _size: int) -> *void {
     size := (_size + RING_ALIGN - 1) & ~(RING_ALIGN - 1);
-    assert(size <= r.cap, "Requested size is greater than ring size");
+    Basic.assert(size <= r.cap, "Requested size is greater than ring size");
     // if size >= r.cap // Not sure if this would be the right call
     //     return null;
     if r.write + size > r.cap
@@ -83,9 +96,21 @@ free :: (r: *Ring, p: *void) #no_context {
 
 
 destroy :: (r: *Ring) {
-    free(r.mem);
+    Basic.free(r.mem);
     <<r = .{};
 }
+
+
+ring_allocator_proc :: (mode: Allocator_Mode, size: s64, old_size: s64, old_memory_pointer: *void, proc_data: *void) -> *void {
+    r: *void;
+    if #complete mode == {
+        case .ALLOCATE; r = alloc(cast(*Ring)proc_data, size);
+        case .RESIZE;   r = alloc(cast(*Ring)proc_data, size);
+        case .FREE;
+    }
+    return r;
+}
+
 
 
 ////////////////////////////////////////////////////
@@ -109,7 +134,7 @@ make_pool :: (size: int, chunk_size: int) -> Pool {
     p.cap = size;
     p.chunk_size = chunk_size;
     p.block_size = p.chunk_size + size_of(Pool_Header);
-    p.mem = alloc(size);
+    p.mem = Basic.alloc(size);
     p.first_free = cast(*Pool_Header)p.mem;
     p.cur = p.block_size;
     return p;
@@ -149,6 +174,27 @@ free_all :: (p: *Pool) {
 
 
 destroy :: (p: *Pool) {
-    free(p.mem);
+    Basic.free(p.mem);
     <<p = Pool.{};
 }
+
+
+pool_allocator_proc :: (mode: Allocator_Mode, size: s64, old_size: s64, old_memory_pointer: *void, proc_data: *void) -> *void {
+    r: *void;
+    if #complete mode == {
+        case .ALLOCATE;
+            r = alloc(cast(*Pool)proc_data, size);
+        case .RESIZE;
+            free(cast(*Pool)proc_data, old_memory_pointer);
+            r = alloc(cast(*Pool)proc_data, size);
+        case .FREE;
+            free(cast(*Pool)proc_data, old_memory_pointer);
+    }
+    return r;
+}
+
+
+#scope_file
+
+Basic :: #import "Basic";
+
