@@ -81,7 +81,7 @@ alloc :: (r: *Ring, _size: int) -> *void {
         r.write = 0;
     result: *void = r.mem + r.write;
     r.write += size;
-    return r.mem + r.write;
+    return result;
 }
 
 
