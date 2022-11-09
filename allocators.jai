@@ -129,11 +129,13 @@ Pool_Header :: struct {
 }
 
 
+POOL_ALIGN :: 8;
 make_pool :: (size: int, chunk_size: int) -> Pool {
     p: Pool;
     p.cap = size;
     p.chunk_size = chunk_size;
     p.block_size = p.chunk_size + size_of(Pool_Header);
+    p.block_size = (p.block_size + (POOL_ALIGN - 1)) & ~(POOL_ALIGN - 1);
     p.mem = Basic.alloc(size); // Todo: Virtual Alloc
     p.first_free = cast(*Pool_Header)p.mem;
     p.cur = p.block_size;
