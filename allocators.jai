@@ -1,6 +1,7 @@
 
 ////////////////////////////////////////////////////
 // Mandala Allocator
+// just a linear allocator or arena allocator
 
 
 Mandala :: struct {
@@ -9,7 +10,6 @@ Mandala :: struct {
     cap: int;
 }
 
-MANDALA_ALIGN :: 8;
 make_mandala :: (size: int) -> Mandala {
     m: Mandala = ---;
     m.mem = Basic.alloc(size); // Todo: Virtual Alloc
@@ -19,7 +19,8 @@ make_mandala :: (size: int) -> Mandala {
 }
 
 
-push_size :: (m: *Mandala, _size: int, $zero: bool = false) -> *void {
+MANDALA_ALIGN :: 8;
+alloc :: (m: *Mandala, _size: int, $zero: bool = false) -> *void {
     size := (_size + MANDALA_ALIGN - 1) & ~(MANDALA_ALIGN - 1);
     Basic.assert(m.cur + size <= m.cap, "Mandala overtaken"); // Assert is slow
     r: *void = m.mem + m.cur;
@@ -39,11 +40,10 @@ destroy :: (m: *Mandala) {
 }
 
 
-
 mandala_allocator_proc :: (mode: Allocator_Mode, size: s64, old_size: s64, old_memory_pointer: *void, proc_data: *void) -> *void {
     r: *void;
     if #complete mode == {
-        case .ALLOCATE; r = push_size(cast(*Mandala)proc_data, size);
+        case .ALLOCATE; r = alloc(cast(*Mandala)proc_data, size);
         case .RESIZE;   invalid_case();
         case .FREE;
     }
@@ -65,7 +65,7 @@ Ring :: struct {
 
 make_ring :: (size: int) -> Ring {
     r: Ring;
-    r.mem = Basic.alloc(size);
+    r.mem = Basic.alloc(size); // Todo: Virtual Alloc
     r.cap = size;
     return r;
 }
@@ -134,7 +134,7 @@ make_pool :: (size: int, chunk_size: int) -> Pool {
     p.cap = size;
     p.chunk_size = chunk_size;
     p.block_size = p.chunk_size + size_of(Pool_Header);
-    p.mem = Basic.alloc(size);
+    p.mem = Basic.alloc(size); // Todo: Virtual Alloc
     p.first_free = cast(*Pool_Header)p.mem;
     p.cur = p.block_size;
     return p;
@@ -184,7 +184,7 @@ pool_allocator_proc :: (mode: Allocator_Mode, size: s64, old_size: s64, old_memo
     if #complete mode == {
         case .ALLOCATE;
             r = alloc(cast(*Pool)proc_data, size);
-        case .RESIZE;
+        case .RESIZE; // Hold on wait what?
             free(cast(*Pool)proc_data, old_memory_pointer);
             r = alloc(cast(*Pool)proc_data, size);
         case .FREE;
