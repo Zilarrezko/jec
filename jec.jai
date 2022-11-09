@@ -329,10 +329,8 @@ ll_append :: (f: **$T, l: **T, i: *T) {
     }
 }
 
-ll_remove :: (f: **$T, l: **T, i: *T)
-{
-    if <<f == i
-    {
+ll_remove :: (f: **$T, l: **T, i: *T) {
+    if <<f == i {
         <<f = (<<f).next;
         (<<f).prev = null;
     }
