@@ -184,13 +184,9 @@ destroy :: (p: *Pool) {
 pool_allocator_proc :: (mode: Allocator_Mode, size: s64, old_size: s64, old_memory_pointer: *void, proc_data: *void) -> *void {
     r: *void;
     if #complete mode == {
-        case .ALLOCATE;
-            r = alloc(cast(*Pool)proc_data, size);
-        case .RESIZE; // Hold on wait what?
-            free(cast(*Pool)proc_data, old_memory_pointer);
-            r = alloc(cast(*Pool)proc_data, size);
-        case .FREE;
-            free(cast(*Pool)proc_data, old_memory_pointer);
+        case .ALLOCATE; r = alloc(cast(*Pool)proc_data, size);
+        case .RESIZE;   r = old_memory_pointer;
+        case .FREE;     free(cast(*Pool)proc_data, old_memory_pointer);
     }
     return r;
 }
