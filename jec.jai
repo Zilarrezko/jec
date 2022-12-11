@@ -253,6 +253,11 @@ is_whitespace :: (cp: u32) -> bool {
     return cp == #char " " || cp == #char "\t" || cp == #char "\r" || cp == #char "\n";
 }
 
+normalize :: (v: *Vector2) {
+    len := sqrt(dot(<<v, <<v));
+    <<v *= 1.0/len;
+}
+
 MURMUR_SEED :u32: 0xa3c91521;
 
 murmur32 :: (key: []u8, seed: u32 = MURMUR_SEED) -> u32 {
