@@ -109,7 +109,7 @@ sign :: (v: $T) -> T {
 // Jon has this commented out in the math library.
 // Will need to remove this when he uncomments that out
 lerp :: (a: $T, b: T, t: float) -> T {
-    return a + (b - a)*t;
+    return as(T, a + t*(b - a));
 }
 
 // byte_range_normalize_multiply
