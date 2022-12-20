@@ -61,8 +61,13 @@ unimplemented :: inline (loc := #caller_location) {
     Basic.assert(false, "not implemented", loc = loc);
 }
 
-transmute :: inline ($T: Type, var: $R) -> T {
-    return cast,trunc(T)var;
+transmute :: ($T: Type, x: $R) -> T #expand {
+    return cast,trunc(T)x;
+}
+
+// more explicit encasing for casting out variable
+as :: ($T: Type, x: $R) -> T #expand {
+    return cast(T)x;
 }
 
 /* Note(Jesse): Might do floats. so okay
@@ -101,10 +106,28 @@ sign :: (v: $T) -> T {
     else     return  1;
 }
 
-align_to :: (v: int, $align: int) -> int {
-    #run {
-        assert(is_power_of_two(align), "alignment isn't power of two");
-    }
+// Jon has this commented out in the math library.
+// Will need to remove this when he uncomments that out
+lerp :: (a: $T, b: T, t: float) -> T {
+    return a + (b - a)*t;
+}
+
+// byte_range_normalize_multiply
+// normalized byte multiplication:
+// range [0, 255] maps to [0.0, 1.0]
+// examples:
+// 0xff * 0xff = 0xff   (255 * 255 = 255)
+// 0xff * 0x7f = 0x7f   (255 * 127 = 127)
+// 0x7f * 0x7f = 0x3f   (127 * 127 =  63)
+// 0x01 * 0xff = 0x01   (  1 * 255 =   1)
+// 0x01 * 0x7f = 0x00   (  1 * 127 =   0)
+nmul :: (a: u8, b: u8) -> u8 {
+    return transmute(u8, ((as(u16, a) + 1)*b) >> 8);
+}
+
+align_to :: (v: int, $align: int) -> int #modify {
+    return is_power_of_two(xx align);
+} {
 
     return (v + (align - 1)) & ~(align - 1);
 }
@@ -554,6 +577,7 @@ time_elapsed :: (at: Basic.Apollo_Time) -> Basic.Apollo_Time {
 }
 
 #load "allocators.jai";
+#load "sorting.jai";
 
 #scope_file
 
