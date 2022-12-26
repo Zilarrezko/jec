@@ -136,7 +136,7 @@ append :: inline (arr: *[..]$T, v: T) {
     array_add(arr, v);
 }
 
-join :: (strs: ..string, allocator: Allocator) -> string {
+join :: (allocator: Allocator, strs: ..string) -> string {
     Basic.push_allocator(allocator);
     return String.join(..strs);
 }
