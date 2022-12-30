@@ -1,12 +1,32 @@
 
 v2i :: struct {
-    x, y: int;
+    x, y: s32;
 }
-make_v2i :: (x: int, y: int) -> v2i #must {
+make_v2i :: (x: s32, y: s32) -> v2i #must {
     v: v2i = ---;
     v.x = x;
     v.y = y;
     return v;
+}
+
+operator - :: (a: v2i, b: v2i) -> v2i {
+    return v2i.{a.x - b.x, a.y - b.y};
+}
+
+operator + :: (a: v2i, b: v2i) -> v2i {
+    return v2i.{a.x + b.x, a.y + b.y};
+}
+
+operator == :: (a: v2i, b: v2i) -> bool {
+    return a.x == b.x && a.y == b.y;
+}
+
+lengthsq :: (v: v2i) -> float {
+    return cast(float)(v.x*v.x + v.y*v.y);
+}
+
+length :: (v: v2i) -> float {
+    return sqrt(lengthsq(v));
 }
 
 v2 :: Vector2;
