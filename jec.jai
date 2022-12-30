@@ -1,8 +1,8 @@
 
 v2i :: struct {
-    x, y: s32;
+    x, y: int;
 }
-make_v2i :: (x: s32, y: s32) -> v2i #must {
+make_v2i :: (x: int, y: int) -> v2i #must {
     v: v2i = ---;
     v.x = x;
     v.y = y;
