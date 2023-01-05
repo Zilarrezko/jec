@@ -21,6 +21,14 @@ operator == :: (a: v2i, b: v2i) -> bool {
     return a.x == b.x && a.y == b.y;
 }
 
+operator * :: (a: v2i, s: float) -> v2i #symmetric {
+    return v2i.{xx(a.x*s), xx(a.y*s)};
+}
+
+operator * :: (a: v2i, s: int) -> v2i #symmetric {
+    return v2i.{a.x*s, a.y*s};
+}
+
 lengthsq :: (v: v2i) -> float {
     return cast(float)(v.x*v.x + v.y*v.y);
 }
