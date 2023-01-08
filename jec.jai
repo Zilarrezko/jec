@@ -604,6 +604,31 @@ time_elapsed :: (at: Basic.Apollo_Time) -> Basic.Apollo_Time {
     }
 }
 
+
+//////////////////////////////////
+//  Static Array
+
+Static_Array :: struct($T: Type, n: int) {
+    arr: [n]T;
+    cur: int;
+}
+
+append :: (sa: *Static_Array($T, $n), v: T) {
+    assert(sa.cur < n, "overblown static array");
+    sa.arr[sa.cur] = v;
+    sa.cur += 1;
+}
+
+peek :: (arr: Static_Array($T, $n)) -> T {
+    r: T = ---;
+    if arr.cur > 0
+        r = arr.arr[arr.cur - 1];
+    else
+        r = T.{};
+    return r;
+}
+
+
 #load "allocators.jai";
 #load "sorting.jai";
 
