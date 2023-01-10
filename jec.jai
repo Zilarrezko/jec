@@ -44,6 +44,10 @@ v4 :: Vector4;
 f32 :: float32;
 f64 :: float64;
 
+lengthsq :: (v: v2) -> f32 {
+    return v.x*v.x + v.y*v.y;
+}
+
 Rect :: struct {
     x0, y0: float32;
     x1, y1: float32;
