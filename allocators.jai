@@ -42,7 +42,7 @@ destroy :: (m: *Mandala) {
 
 mandala_allocator_proc :: (mode: Allocator_Mode, size: s64, old_size: s64, old_memory_pointer: *void, proc_data: *void) -> *void {
     r: *void;
-    if #complete mode == {
+    if mode == {
         case .ALLOCATE; r = alloc(cast(*Mandala)proc_data, size);
         case .RESIZE;   invalid_case();
         case .FREE;
@@ -103,7 +103,7 @@ destroy :: (r: *Ring) {
 
 ring_allocator_proc :: (mode: Allocator_Mode, size: s64, old_size: s64, old_memory_pointer: *void, proc_data: *void) -> *void {
     r: *void;
-    if #complete mode == {
+    if mode == {
         case .ALLOCATE; r = alloc(cast(*Ring)proc_data, size);
         case .RESIZE;   r = alloc(cast(*Ring)proc_data, size);
         case .FREE;
@@ -183,7 +183,7 @@ destroy :: (p: *Pool) {
 
 pool_allocator_proc :: (mode: Allocator_Mode, size: s64, old_size: s64, old_memory_pointer: *void, proc_data: *void) -> *void {
     r: *void;
-    if #complete mode == {
+    if mode == {
         case .ALLOCATE; r = alloc(cast(*Pool)proc_data, size);
         case .RESIZE;   r = old_memory_pointer;
         case .FREE;     free(cast(*Pool)proc_data, old_memory_pointer);
