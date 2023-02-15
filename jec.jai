@@ -82,12 +82,34 @@ GIGA :: (v: $T) -> T {
     return 1024*MEGA(v);
 }
 
-decimal_crush :: (x: $T) -> float64 {
+decimal_crush :: (x: $T) -> float64, int {
+    c: int;
     r: float64 = cast(float64)x;
     while r >= 1024.0 {
         r = r/1024.0;
+        c += 1;
     }
-    return r;
+    return r, c;
+}
+
+decimal_crush_as_string :: (x: $T, allocator := temp) -> string {
+    r, c := decimal_crush(x);
+    sb: String_Builder;
+    sb.allocator = allocator;
+    print_to_builder(*sb, "%", r);
+    defer free_buffers(*sb);
+    if c == {
+        case 0; append(*sb, "");
+        case 1; append(*sb, "K");
+        case 2; append(*sb, "M");
+        case 3; append(*sb, "G");
+        case 4; append(*sb, "T");
+        case 5; append(*sb, "P");
+        case 6; append(*sb, "E");
+        case 7; append(*sb, "Z");
+        case;   append(*sb, "AL"); // A lot
+    }
+    return builder_to_string(*sb);
 }
 
 println :: (fmt: string, args: ..Any) -> int {
