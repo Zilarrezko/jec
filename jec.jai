@@ -82,6 +82,21 @@ GIGA :: (v: $T) -> T {
     return 1024*MEGA(v);
 }
 
+decimal_crush :: (x: $T) -> float64 {
+    r: float64 = cast(float64)x;
+    while r >= 1024.0 {
+        r = r/1024.0;
+    }
+    return r;
+}
+
+println :: (fmt: string, args: ..Any) -> int {
+    sb: String_Builder;
+    print_to_builder(*sb, fmt, ..args);
+    append(*sb, #char"\n");
+    return write_builder(*sb); // Returns bytes printed
+}
+
 // Note(jesse): This isn't right... It's not asserting
 invalid_path :: inline (loc := #caller_location) {
     Basic.assert(false, "invalid path", loc = loc);
@@ -306,6 +321,18 @@ is_whitespace :: (cp: u8) -> bool {
 }
 is_whitespace :: (cp: u32) -> bool {
     return cp == #char " " || cp == #char "\t" || cp == #char "\r" || cp == #char "\n";
+}
+
+repeat :: (s: string, c: int, allocator: Allocator = temp) -> string {
+    r: string = ---;
+    r.count = c*s.count;
+    r.data = alloc(r.count, allocator);
+    for i: 0 .. c - 1 {
+        for j: 0 .. s.count - 1 {
+            r.data[i*s.count + j] = s.data[j];
+        }
+    }
+    return r;
 }
 
 normalize :: (v: *Vector2) {

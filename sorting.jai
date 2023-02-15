@@ -75,5 +75,4 @@ merge_sort :: (arr: []$T, cmp: (T, T) -> bool, allocator := temp) {
         }
         k *= 2;
     }
-    free(tmp.data);
 }
