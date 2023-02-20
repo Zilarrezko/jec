@@ -112,7 +112,7 @@ decimal_crush_as_string :: (x: $T, allocator := temp) -> string {
     return builder_to_string(*sb);
 }
 
-println :: (fmt: string, args: ..Any) -> int {
+println :: (fmt: string = "", args: ..Any) -> int {
     sb: String_Builder;
     print_to_builder(*sb, fmt, ..args);
     append(*sb, #char"\n");
