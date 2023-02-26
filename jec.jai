@@ -130,12 +130,12 @@ unimplemented :: inline (loc := #caller_location) {
     Basic.assert(false, "not implemented", loc = loc);
 }
 
-transmute :: ($T: Type, x: $R) -> T #expand {
+transmute :: ($T: Type, x: $R) -> T #expand #no_debug {
     return cast,trunc(T)x;
 }
 
 // more explicit encasing for casting out variable
-as :: ($T: Type, x: $R) -> T #expand {
+as :: ($T: Type, x: $R) -> T #expand #no_debug {
     return cast(T)x;
 }
 
