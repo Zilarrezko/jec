@@ -666,7 +666,10 @@ Static_Array :: struct($T: Type, n: int) {
     cur: int;
 }
 
-append :: (sa: *Static_Array($T, $n), v: T) {
+append :: inline (sa: *Static_Array($T, $n), v: T) {
+    array_add(sa, v);
+}
+array_add :: (sa: *Static_Array($T, $n), v: T) {
     assert(sa.cur < n, "overblown static array");
     sa.arr[sa.cur] = v;
     sa.cur += 1;
@@ -681,6 +684,23 @@ peek :: (arr: Static_Array($T, $n)) -> T {
     return r;
 }
 
+unordered_remove :: inline (arr: *Static_Array($T, $n), i: int) {
+    array_unordered_remove_by_index(arr, i);
+}
+array_unordered_remove_by_index :: (arr: *Static_Array($T, $n), i: int) {
+    arr.arr[i] = arr.arr[arr.cur - 1];
+    arr.cur -= 1;
+}
+
+ordered_remove :: inline (arr: *Static_Array($T, $n), i: int) {
+    array_ordered_remove_by_index(arr, i);
+}
+array_ordered_remove_by_index :: (arr: *Static_Array($T, $n), i: int) {
+    for k : i + 1..arr.cur - 1 {
+        arr.arr[k - 1] = arr.arr[k];
+    }
+    arr.cur -= 1;
+}
 
 #load "allocators.jai";
 #load "sorting.jai";
