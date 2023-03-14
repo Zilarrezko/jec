@@ -12,12 +12,18 @@ Mandala :: struct {
 
 make_mandala :: (size: int) -> Mandala {
     m: Mandala = ---;
-    m.mem = Basic.alloc(size); // Todo: Virtual Alloc
+    m.mem = Basic.alloc(size);
     m.cur = 0;
     m.cap = size;
     return m;
 }
-
+make_mandala :: (memory: *void, size: int) -> Mandala {
+    m: Mandala = ---;
+    m.mem = memory;
+    m.cur = 0;
+    m.cap = size;
+    return m;
+}
 
 MANDALA_ALIGN :: 8;
 alloc :: (m: *Mandala, _size: int, $zero: bool = false) -> *void {
