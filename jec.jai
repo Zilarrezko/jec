@@ -741,17 +741,20 @@ tick_scope :: (scope_name: string = "unknown") #expand #no_debug {
 Tick_Profile_Result :: struct {
     name: string;
     start: u64;
+    hits: int;
 }
 tick_start :: (name: string) -> Tick_Profile_Result #expand #no_debug {
     r: Tick_Profile_Result;
     r.name = name;
     r.start = rdtsc();
+    r.hits = 1;
     return r;
 }
 
 tick_end :: (r: Tick_Profile_Result) {
     cycles := rdtsc() - r.start;
-    log(Basic.tprint("% % cycles\n", r.name, cycles));
+    hits := max(r.hits - 1, 1);
+    log(Basic.tprint("% % cycles, % cyc/hit\n", r.name, cycles, cast(f64)cycles/cast(f64)hits));
 }
 
 time_start :: () -> Basic.Apollo_Time {
