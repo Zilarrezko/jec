@@ -1,12 +1,31 @@
 
+lengthsq :: (v: v2i) -> f32 {
+    return cast(f32)(v.x*v.x + v.y*v.y);
+}
+
+length :: (v: v2i) -> f32 {
+    return sqrt(lengthsq(v));
+}
+
+v2 :: Vector2;
+v3 :: Vector3;
+v4 :: Vector4;
+
+f32 :: float32;
+f64 :: float64;
+
 v2i :: struct {
     x, y: int;
 }
 make_v2i :: (x: int, y: int) -> v2i #must {
-    v: v2i = ---;
-    v.x = x;
-    v.y = y;
-    return v;
+    return v2i.{x, y};
+}
+make_v2 :: (x: f32, y: f32) -> v2 #must {
+    return v2.{x, y};
+}
+V2 :: make_v2;
+make_v2 :: (v: v2i) -> v2 #must {
+    return v2.{xx v.x, xx v.y};
 }
 
 operator - :: (a: v2i, b: v2i) -> v2i {
@@ -21,28 +40,13 @@ operator == :: (a: v2i, b: v2i) -> bool {
     return a.x == b.x && a.y == b.y;
 }
 
-operator * :: (a: v2i, s: float) -> v2i #symmetric {
+operator * :: (a: v2i, s: f32) -> v2i #symmetric {
     return v2i.{xx(a.x*s), xx(a.y*s)};
 }
 
 operator * :: (a: v2i, s: int) -> v2i #symmetric {
     return v2i.{a.x*s, a.y*s};
 }
-
-lengthsq :: (v: v2i) -> float {
-    return cast(float)(v.x*v.x + v.y*v.y);
-}
-
-length :: (v: v2i) -> float {
-    return sqrt(lengthsq(v));
-}
-
-v2 :: Vector2;
-v3 :: Vector3;
-v4 :: Vector4;
-
-f32 :: float32;
-f64 :: float64;
 
 lengthsq :: (v: v2) -> f32 {
     return v.x*v.x + v.y*v.y;
@@ -51,11 +55,37 @@ lengthsq :: (v: v2) -> f32 {
 Rect :: struct {
     x0, y0: f32;
     x1, y1: f32;
+
+    #place x0;
+    xy: v2;
 }
 
 Recti :: struct {
     x0, y0: int;
     x1, y1: int;
+
+    #place x0;
+    xy: v2i;
+}
+
+operator + :: (r: Rect, x: f32) -> Rect #symmetric {
+    return Rect.{r.x0 + x, r.y0 + x, r.x1 + x, r.y1 + x};
+}
+
+operator + :: (r: Rect, v: v2) -> Rect #symmetric {
+    return Rect.{r.x0 + v.x, r.y0 + v.y, r.x1 + v.x, r.y1 + v.y};
+}
+
+operator + :: (r: Rect, v: v2i) -> Rect #symmetric {
+    return Rect.{r.x0 + v.x, r.y0 + v.y, r.x1 + v.x, r.y1 + v.y};
+}
+
+operator - :: (r: Rect, v: v2) -> Rect {
+    return Rect.{r.x0 - v.x, r.y0 - v.y, r.x1 - v.x, r.y1 - v.y};
+}
+
+operator - :: (r: Rect, v: v2i) -> Rect {
+    return Rect.{r.x0 - v.x, r.y0 - v.y, r.x1 - v.x, r.y1 - v.y};
 }
 
 Color :: struct {
