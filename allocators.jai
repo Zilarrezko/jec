@@ -49,8 +49,8 @@ destroy :: (m: *Mandala) {
 mandala_allocator_proc :: (mode: Allocator_Mode, size: s64, old_size: s64, old_memory_pointer: *void, proc_data: *void) -> *void {
     r: *void;
     if mode == {
+        case .RESIZE;   #through;
         case .ALLOCATE; r = alloc(cast(*Mandala)proc_data, size);
-        case .RESIZE;   invalid_case();
         case .FREE;
     }
     return r;
