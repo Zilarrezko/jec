@@ -857,6 +857,53 @@ array_ordered_remove_by_index :: (arr: *Static_Array($T, $n), i: int) {
     arr.cur -= 1;
 }
 
+////////////////////////////////////
+// NOISE
+
+
+perlin :: inline (v: v2) -> f32 {
+    return perlin(v.x, v.y);
+}
+perlin :: (x: f32, y: f32) -> f32 {
+    spall_scope("perlin");
+    x0: int = cast(int)x;
+    y0: int = cast(int)y;
+    x1 := x0 + 1;
+    y1 := y0 + 1;
+    dx: f32 = x - cast(f32)x0;
+    dy: f32 = y - cast(f32)y0;
+    g0 := dot_gradient(x0, y0, x, y);
+    g1 := dot_gradient(x1, y0, x, y);
+    v0 := lerp(g0, g1, dx);
+    g0  = dot_gradient(x0, y1, x, y);
+    g1  = dot_gradient(x1, y1, x, y);
+    v1 := lerp(g0, g1, dx);
+    val := lerp(v0, v1, dy);
+    return val;
+}
+
+curl :: (v: v2) -> v2 {
+    spall_scope("curl");
+    eps := 0.0001;
+    n1 := perlin(v.x + eps, v.y);
+    n2 := perlin(v.x - eps, v.y);
+    a := (n1 - n2)/(2*eps);
+    n1 = perlin(v.x, v.y + eps);
+    n2 = perlin(v.x, v.y - eps);
+    b := (n1 - n2)/(2*eps);
+    return v2.{b, -a};
+}
+dot_gradient :: (ix: int, iy: int, x: f32, y: f32) -> f32 {
+    grad: v2 = ---;
+    grad.x = random_unilateral();
+    grad.y = random_unilateral();
+    normalize(*grad);
+    d: v2 = ---;
+    d.x = x - cast(f32)ix;
+    d.y = y - cast(f32)iy;
+    return dot(d, grad);
+}
+
 #load "allocators.jai";
 #load "sorting.jai";
 
