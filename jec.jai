@@ -930,10 +930,6 @@ curl :: (v: v2) -> v2 {
 
 Basic :: #import "Basic";
 
-operator- :: inline (lhs: $L, rhs: $R) -> L {
-   return Basic.operator-(lhs, rhs);
-}
-
 W :: #import "Windows";
 #import "Machine_X64";
 
