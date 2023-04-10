@@ -863,10 +863,18 @@ array_ordered_remove_by_index :: (arr: *Static_Array($T, $n), i: int) {
 // NOISE
 
 
+perlin_unilateral :: inline (v: v2) -> f32 {
+    return (perlin_bilateral(v) + 1.0)/2.0;
+}
+perlin_unilateral :: inline (x: f32, y: f32) -> f32 {
+    return (perlin_bilateral(x, y) + 1.0)/2.0;
+}
+perlin_bilateral :: perlin;
 perlin :: inline (v: v2) -> f32 {
     return perlin(v.x, v.y);
 }
 perlin :: (x: f32, y: f32) -> f32 {
+    interpolate :: lerp; // For some reason lerp is the only thing giving good values
     spall_scope("perlin");
     x0: int = cast(int)x;
     y0: int = cast(int)y;
@@ -876,12 +884,31 @@ perlin :: (x: f32, y: f32) -> f32 {
     dy: f32 = y - cast(f32)y0;
     g0 := dot_gradient(x0, y0, x, y);
     g1 := dot_gradient(x1, y0, x, y);
-    v0 := lerp(g0, g1, dx);
+    v0 := interpolate(g0, g1, dx);
     g0  = dot_gradient(x0, y1, x, y);
     g1  = dot_gradient(x1, y1, x, y);
-    v1 := lerp(g0, g1, dx);
-    val := lerp(v0, v1, dy);
+    v1 := interpolate(g0, g1, dx);
+    val := interpolate(v0, v1, dy);
     return val;
+}
+dot_gradient :: (ix: int, iy: int, x: f32, y: f32) -> f32 {
+    grad: v2 = ---;
+    a: u32 = cast,trunc(u32)ix;
+    b: u32 = cast,trunc(u32)iy;
+    w := 8*size_of(u32);
+    s := w/2;
+    a *= 3284157443;
+    b ^= a <<< s;
+    b *= 1911520717;
+    a ^= b <<< s;
+    a *= 2048419325;
+    r: f32 = cast(f32)(a*(PI32/S32_MIN));
+    grad.x = cos(r);
+    grad.y = sin(r);
+    d: v2 = ---;
+    d.x = x - cast(f32)ix;
+    d.y = y - cast(f32)iy;
+    return dot(d, grad);
 }
 
 curl :: (v: v2) -> v2 {
@@ -894,16 +921,6 @@ curl :: (v: v2) -> v2 {
     n2 = perlin(v.x, v.y - eps);
     b := (n1 - n2)/(2*eps);
     return v2.{b, -a};
-}
-dot_gradient :: (ix: int, iy: int, x: f32, y: f32) -> f32 {
-    grad: v2 = ---;
-    grad.x = random_unilateral();
-    grad.y = random_unilateral();
-    normalize(*grad);
-    d: v2 = ---;
-    d.x = x - cast(f32)ix;
-    d.y = y - cast(f32)iy;
-    return dot(d, grad);
 }
 
 #load "allocators.jai";
