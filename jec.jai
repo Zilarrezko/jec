@@ -205,10 +205,12 @@ sign :: (v: $T) -> T {
     else     return  1;
 }
 
-// Jon has this commented out in the math library.
-// Will need to remove this when he uncomments that out
-lerp :: (a: $T, b: T, t: float) -> T {
-    return as(T, a + t*(b - a));
+smoothstep :: (a: f32, b: f32, t: f32) -> f32 {
+    if t < 0
+        return a;
+    if t > 1
+        return b;
+    return (b - a)*(3.0 - 2.0*t)*t*t + a;
 }
 
 // byte_range_normalize_multiply
