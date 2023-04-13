@@ -203,13 +203,21 @@ sign :: (v: $T) -> T {
     else     return  1;
 }
 
-smoothstep :: (a: f32, b: f32, t: f32) -> f32 {
-    if t < 0
-        return a;
-    if t > 1
-        return b;
-    return (b - a)*(3.0 - 2.0*t)*t*t + a;
+// t: [0..1]
+smoothstep :: inline (t: f32) -> f32 {
+    return t*t*(3.0 - 2.0*t);
 }
+
+smooth_lerp :: (a: f32, b: f32, t: f32) -> f32 {
+    return lerp(a, b, smoothstep(t));
+}
+cosine_lerp :: sinusoidal_lerp;
+sinusoidal_lerp :: (a: f32, b: f32, t: f32) -> f32 {
+    v := 0.5 + -0.5*cos(t*PI); // [0..1]
+    v = a + v*(b - a); // [a, b]
+    return v;
+}
+
 
 // byte_range_normalize_multiply
 // normalized byte multiplication:
