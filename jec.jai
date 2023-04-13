@@ -886,6 +886,42 @@ array_ordered_remove_by_index :: (arr: *Static_Array($T, $n), i: int) {
 // NOISE
 
 
+perlin_LUT_count :: 256;
+perlin_LUT_mask :: perlin_LUT_count - 1;
+perlin_LUT: [perlin_LUT_count]v2 = #run init_perlin_LUT();
+perlin_permutation_LUT: [3*perlin_LUT_count]int = #run init_perlin_permutation_LUT();
+init_perlin_LUT :: () -> [perlin_LUT_count]v2 {
+    push_entropy(2016);
+
+    r: [perlin_LUT_count]v2;
+    for i : 0..perlin_LUT_count - 1 {
+        r[i] = random_v2();
+    }
+    return r;
+}
+init_perlin_permutation_LUT :: () -> [3*perlin_LUT_count]int {
+    push_entropy(2016);
+
+    r: [3*perlin_LUT_count]int;
+    for i : 0..perlin_LUT_count - 1 {
+        r[i] = i;
+    }
+    for k : 0..perlin_LUT_count - 1 {
+        i: int = random_proc() % perlin_LUT_count;
+        t := r[k];
+        r[k] = r[i];
+        r[i] = t;
+        r[k + perlin_LUT_count] = r[k];
+    }
+    for k : 0..perlin_LUT_count - 1 {
+        i: int = random_proc() % perlin_LUT_count;
+        t := r[k];
+        r[k] = r[i];
+        r[i] = t;
+        r[k + 2*perlin_LUT_count] = r[k];
+    }
+    return r;
+}
 perlin_unilateral :: inline (v: v2) -> f32 {
     return (perlin_bilateral(v) + 1.0)/2.0;
 }
@@ -893,29 +929,53 @@ perlin_unilateral :: inline (x: f32, y: f32) -> f32 {
     return (perlin_bilateral(x, y) + 1.0)/2.0;
 }
 perlin_bilateral :: perlin;
-perlin :: inline (v: v2) -> f32 {
-    return perlin(v.x, v.y);
+perlin :: (v: v2) -> f32 {
+    return inline perlin(v.x, v.y, 0);
+}
+perlin :: (v: v3) -> f32 {
+    return inline perlin(v.x, v.y, v.z);
 }
 perlin :: (x: f32, y: f32) -> f32 {
-    interpolate :: lerp; // For some reason lerp is the only thing giving good values
-    spall_scope("perlin");
+    return inline perlin(x, y, 0);
+}
+perlin :: (x: f32, y: f32, z: f32) -> f32 {
     x0: int = cast(int)x;
     y0: int = cast(int)y;
+    z0: int = cast(int)z;
+    if x < 0
+        x0 = x0 - 1;
+    if y < 0
+        y0 = y0 - 1;
+    if z < 0
+        z0 = z0 - 1;
     x1 := x0 + 1;
     y1 := y0 + 1;
-    dx: f32 = x - cast(f32)x0;
-    dy: f32 = y - cast(f32)y0;
-    g0 := dot_gradient(x0, y0, x, y);
-    g1 := dot_gradient(x1, y0, x, y);
-    v0 := interpolate(g0, g1, dx);
-    g0  = dot_gradient(x0, y1, x, y);
-    g1  = dot_gradient(x1, y1, x, y);
-    v1 := interpolate(g0, g1, dx);
-    val := interpolate(v0, v1, dy);
+    z1 := z0 + 1;
+    tx: f32 = x - cast(f32)x0;
+    ty: f32 = y - cast(f32)y0;
+    tz: f32 = z - cast(f32)z0;
+    tx = smoothstep(tx);
+    ty = smoothstep(ty);
+    tz = smoothstep(tz);
+    g0 := dot_gradient(x0, y0, z0, x, y, z);
+    g1 := dot_gradient(x1, y0, z0, x, y, z);
+    s0 := lerp(g0, g1, tx);
+    g0  = dot_gradient(x0, y1, z0, x, y, z);
+    g1  = dot_gradient(x1, y1, z0, x, y, z);
+    s1 := lerp(g0, g1, tx);
+    g0  = dot_gradient(x0, y0, z1, x, y, z);
+    g1  = dot_gradient(x1, y0, z1, x, y, z);
+    s2 := lerp(g0, g1, tx);
+    g0  = dot_gradient(x0, y1, z1, x, y, z);
+    g1  = dot_gradient(x1, y1, z1, x, y, z);
+    s3 := lerp(g0, g1, tx);
+    v0 := lerp(s0, s1, ty);
+    v1 := lerp(s2, s3, ty);
+    val := lerp(v0, v1, tz);
     return val;
 }
-dot_gradient :: (ix: int, iy: int, x: f32, y: f32) -> f32 {
-    grad: v2 = ---;
+dot_gradient :: (ix: int, iy: int, iz: int, x: f32, y: f32, z: f32) -> f32 {
+#if false {
     a: u32 = cast,trunc(u32)ix;
     b: u32 = cast,trunc(u32)iy;
     w := 8*size_of(u32);
@@ -925,23 +985,136 @@ dot_gradient :: (ix: int, iy: int, x: f32, y: f32) -> f32 {
     b *= 1911520717;
     a ^= b <<< s;
     a *= 2048419325;
-    r: f32 = cast(f32)(a*(PI32/S32_MIN));
-    grad.x = cos(r);
-    grad.y = sin(r);
+    r: f32 = (cast(f32)a*(2.0*PI/cast(f32)U32_MAX));
+    grad: v2 = v2.{cos(r), sin(r)};
+}
+else {
+    grad := perlin_LUT[perlin_permutation_LUT[perlin_permutation_LUT[perlin_permutation_LUT[ix&perlin_LUT_mask] + iy&perlin_LUT_mask] + iz&perlin_LUT_mask]];
+}
     d: v2 = ---;
     d.x = x - cast(f32)ix;
     d.y = y - cast(f32)iy;
     return dot(d, grad);
 }
 
+value_lookup_count :: 256;
+value_lookup_mask :: value_lookup_count - 1;
+value_lookup: [value_lookup_count]f32 = #run init_value_noise_LUT();
+value_permutation_LUT: [3*value_lookup_count]int = #run init_value_permutation_LUT();
+init_value_noise_LUT :: () -> [value_lookup_count]f32 {
+    push_entropy(2016);
+
+    r: [value_lookup_count]f32;
+    for i : 0..value_lookup_count - 1 {
+        r[i] = random_unilateral();
+    }
+    return r;
+}
+init_value_permutation_LUT :: () -> [3*value_lookup_count]int {
+    push_entropy(2016);
+
+    r: [3*value_lookup_count]int;
+    for i : 0..value_lookup_count - 1 {
+        r[i] = i;
+    }
+    for k : 0..value_lookup_count - 1 {
+        i: int = random_proc() % value_lookup_count;
+        t := r[k];
+        r[k] = r[i];
+        r[i] = t;
+        r[k + value_lookup_count] = r[k];
+    }
+    for k : 0..value_lookup_count - 1 {
+        i: int = random_proc() % value_lookup_count;
+        t := r[k];
+        r[k] = r[i];
+        r[i] = t;
+        r[k + 2*value_lookup_count] = r[k];
+    }
+    return r;
+}
+value_noise :: (x: f32) -> f32 {
+    return inline value_noise(x, 0, 0);
+}
+value_noise :: (x: f32, y: f32) -> f32 {
+    return inline value_noise(x, y, 0);
+}
+value_noise :: (x: f32, y: f32, z: f32) -> f32 {
+    ix0: int = cast(int)x;
+    if x < 0
+        ix0 -= 1;
+    iy0: int = cast(int)y;
+    if y < 0
+        iy0 -= 1;
+    iz0: int = cast(int)z;
+    if z < 0
+        iz0 -= 1;
+    tx: f32 = x - ix0;
+    ty: f32 = y - iy0;
+    tz: f32 = z - iz0;
+    ix0 = ix0 & value_lookup_mask;
+    ix1 := (ix0 + 1) & value_lookup_mask;
+    iy0 = iy0 & value_lookup_mask;
+    iy1 := (iy0 + 1) & value_lookup_mask;
+    iz0 = iz0 & value_lookup_mask;
+    iz1 := (iz0 + 1) & value_lookup_mask;
+    c000: f32 = value_lookup[value_permutation_LUT[value_permutation_LUT[value_permutation_LUT[ix0] + iy0] + iz0]];
+    c100: f32 = value_lookup[value_permutation_LUT[value_permutation_LUT[value_permutation_LUT[ix1] + iy0] + iz0]];
+    c010: f32 = value_lookup[value_permutation_LUT[value_permutation_LUT[value_permutation_LUT[ix0] + iy1] + iz0]];
+    c110: f32 = value_lookup[value_permutation_LUT[value_permutation_LUT[value_permutation_LUT[ix1] + iy1] + iz0]];
+    c001: f32 = value_lookup[value_permutation_LUT[value_permutation_LUT[value_permutation_LUT[ix0] + iy0] + iz1]];
+    c101: f32 = value_lookup[value_permutation_LUT[value_permutation_LUT[value_permutation_LUT[ix1] + iy0] + iz1]];
+    c011: f32 = value_lookup[value_permutation_LUT[value_permutation_LUT[value_permutation_LUT[ix0] + iy1] + iz1]];
+    c111: f32 = value_lookup[value_permutation_LUT[value_permutation_LUT[value_permutation_LUT[ix1] + iy1] + iz1]];
+    tx = smoothstep(tx);
+    ty = smoothstep(ty);
+    tz = smoothstep(tz);
+    vx1 := lerp(c000, c100, tx);
+    vx2 := lerp(c010, c110, tx);
+    vx3 := lerp(c001, c101, tx);
+    vx4 := lerp(c011, c111, tx);
+    vy1 := lerp(vx1, vx2, ty);
+    vy2 := lerp(vx3, vx4, ty);
+    val := lerp(vy1, vy2, tz);
+    return val;
+}
+
+noise :: inline (x: f32, y: f32) -> f32 {
+    // Typical settings for some noise
+    layers :: 4;
+    persistance :: 0.5;
+    lacunarity :: 2.0;
+    return noise(x, y, layers, persistance, lacunarity);
+}
+noise :: (x: f32, y: f32, layers: int, persistance: f32, lacunarity: f32) -> f32 {
+    func :: perlin;
+    amp := 1.0;
+    freq := 1.0;
+    acc: f32;
+    for 0..layers - 1 {
+        sx := x*freq;
+        sy := y*freq;
+        acc += amp*func(sx, sy);
+        amp *= persistance;
+        freq *= lacunarity;
+    }
+    /*
+      amp*func        // [0..amp]
+      amp *= persist  // pow(persistance, layers);
+      // 1+0.5+0.25+0.125
+      // closed form: ((x^n+1) - 1)/(x - 1)
+    */
+    max_val: f32 = (pow(persistance, cast(f32)layers) - 1)/(persistance - 1);
+    return acc/max_val;
+}
+
 curl :: (v: v2) -> v2 {
-    spall_scope("curl");
     eps := 0.0001;
-    n1 := perlin(v.x + eps, v.y);
-    n2 := perlin(v.x - eps, v.y);
+    n1 := noise(v.x + eps, v.y);
+    n2 := noise(v.x - eps, v.y);
     a := (n1 - n2)/(2*eps);
-    n1 = perlin(v.x, v.y + eps);
-    n2 = perlin(v.x, v.y - eps);
+    n1 = noise(v.x, v.y + eps);
+    n2 = noise(v.x, v.y - eps);
     b := (n1 - n2)/(2*eps);
     return v2.{b, -a};
 }
