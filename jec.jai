@@ -474,7 +474,7 @@ unix_seperators :: (filepath: *string) {
     }
 }
 
-jec_advance :: inline (s: *string, n: int = 1) {
+fast_advance :: inline (s: *string, n: int = 1) {
     s.data += n; s.count -= n;
 }
 
@@ -609,11 +609,21 @@ ll_remove :: (f: **$T, l: **T, i: *T) {
 Entropy :: u64;
 g_entropy: Entropy = 0xB0A710ADBADC0DE;
 
+push_entropy :: (s: Entropy) #expand {
+    e := g_entropy;
+    g_entropy = s;
+    `defer g_entropy = e;
+}
+
 PCG_DEFAULT_MULTIPLIER_64 :u64: 6_364_136_223_846_793_005;
 PCG_DEFAULT_INCREMENT_64 :u64: 1_442_695_040_888_963_407;
-pcg_xsh_rr :: () -> u32 {
-    os: u32 = (cast,trunc(u32)(g_entropy^(g_entropy >> 18) >> 27)) >>> (cast(u32)(g_entropy >> 59));
-    g_entropy = g_entropy*PCG_DEFAULT_MULTIPLIER_64 + PCG_DEFAULT_INCREMENT_64;
+pcg_xsh_rr :: inline () -> u32 {
+    return pcg_xsh_rr(*g_entropy);
+}
+pcg_xsh_rr :: (entropy: *Entropy) -> u32 {
+    e := <<entropy;
+    os: u32 = (cast,trunc(u32)(e^(e >> 18) >> 27)) >>> (cast,trunc(u32)(e >> 59));
+    <<entropy = e*PCG_DEFAULT_MULTIPLIER_64 + PCG_DEFAULT_INCREMENT_64;
     return os;
 }
 
@@ -639,11 +649,24 @@ random_int :: (low: int, high: int) -> int {
 random_u32 :: () -> u32 {
     return random_proc();
 }
+random_u64 :: () -> u64 {
+    x: u64 = cast,no_check(u64)random_proc();
+    x = (x << 32) | cast,no_check(u64)random_proc();
+    return x;
+}
+random_f32 :: () -> f32 {
+    return random_unilateral();
+}
 random_f32 :: (low: f32, high: f32) -> f32 {
     return (low + random_unilateral()*(high - low));
 }
 random_bool :: () -> bool {
     return transmute(bool, random_proc()&1);
+}
+random_v2 :: () -> v2 {
+    a := random_unilateral(); // [0..1]
+    a = a*2*PI;               // [0..2PI]
+    return v2.{cos(a), sin(a)};
 }
 
 ///////////////////////////////////////////////
