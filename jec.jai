@@ -98,8 +98,6 @@ Color :: struct {
     e: [4]f32;
 }
 
-PI32 :: 3.14159265358927;
-
 KILO :: (v: $T) -> T {
     return 1024*v;
 }
