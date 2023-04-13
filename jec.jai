@@ -594,36 +594,24 @@ ll_remove :: (f: **$T, l: **T, i: *T) {
 ////////////////////////////////////////////////////
 // Random/Entropy
 
-Entropy :: struct {
-    s: u64 = 0xB0A710ADBADC0DE;
-}
-g_entropy: Entropy;
-seed_entropy :: (seed: u64) {
-    g_entropy.s = seed;
-}
-seed_entropy :: (entropy: *Entropy, seed: u64) {
-    entropy.s = seed;
-}
+Entropy :: u64;
+g_entropy: Entropy = 0xB0A710ADBADC0DE;
 
 PCG_DEFAULT_MULTIPLIER_64 :u64: 6_364_136_223_846_793_005;
 PCG_DEFAULT_INCREMENT_64 :u64: 1_442_695_040_888_963_407;
 pcg_xsh_rr :: () -> u32 {
-    using g_entropy;
-    os: u32 = (cast,trunc(u32)(s^(s >> 18) >> 27)) >>> (cast(u32)(s >> 59));
-    g_entropy.s = s*PCG_DEFAULT_MULTIPLIER_64 + PCG_DEFAULT_INCREMENT_64;
+    os: u32 = (cast,trunc(u32)(g_entropy^(g_entropy >> 18) >> 27)) >>> (cast(u32)(g_entropy >> 59));
+    g_entropy = g_entropy*PCG_DEFAULT_MULTIPLIER_64 + PCG_DEFAULT_INCREMENT_64;
     return os;
 }
 
 // If you literally need all speed
-xorsh :: () -> u32 {
-    using g_entropy;
-    g_entropy.s ^= (s<<13)^(s>>7)^(s<<17);
-    return cast,trunc(u32)g_entropy.s;
+xorsh :: inline () -> u32 {
+    return xorsh(*g_entropy);
 }
-xorsh :: (entropy: *Entropy) -> u32 {
-    using entropy;
-    entropy.s ^= (s<<13)^(s>>7)^(s<<17);
-    return cast,trunc(u32)entropy.s;
+xorsh :: (e: *Entropy) -> u32 {
+    <<e ^= (<<e<<13)^(<<e>>7)^(<<e<<17);
+    return cast,trunc(u32)e;
 }
 
 random_proc :: pcg_xsh_rr;
