@@ -508,8 +508,14 @@ normalize :: (v: *Vector2) {
 
 MURMUR_SEED :u32: 0xa3c91521;
 
+murmur32 :: inline (x: $T, seed: u32 = MURMUR_SEED) -> u32 {
+    d: []u8 = ---;
+    d.data = cast(*u8)*x;
+    d.count = size_of(T);
+    return murmur32(d, seed);
+}
 murmur32 :: (key: []u8, seed: u32 = MURMUR_SEED) -> u32 {
-    scrambler :: (k: u32) -> u32 {
+    scrambler :: inline (k: u32) -> u32 {
         c1: u32 : 0xcc9e2d51;
         c2: u32 : 0x1b873593;
         r1: int : 15;
