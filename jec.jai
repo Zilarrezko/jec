@@ -1,12 +1,4 @@
 
-lengthsq :: (v: v2i) -> f32 {
-    return cast(f32)(v.x*v.x + v.y*v.y);
-}
-
-length :: (v: v2i) -> f32 {
-    return sqrt(lengthsq(v));
-}
-
 v2 :: Vector2;
 v3 :: Vector3;
 v4 :: Vector4;
@@ -48,8 +40,20 @@ operator * :: (a: v2i, s: int) -> v2i #symmetric {
     return v2i.{a.x*s, a.y*s};
 }
 
+dot :: (a: v2i, b: v2i) -> int {
+    return a.x*b.x + a.y*b.y;
+}
+
+lengthsq :: (v: v2i) -> int {
+    return inline dot(v, v);
+}
+
+length :: (v: v2i) -> f32 {
+    return sqrt(as(f32, lengthsq(v)));
+}
+
 lengthsq :: (v: v2) -> f32 {
-    return v.x*v.x + v.y*v.y;
+    return inline dot(v, v);
 }
 
 Rect :: struct {
@@ -121,10 +125,10 @@ decimal_crush :: (x: $T) -> f64, int {
 }
 
 decimal_crush_as_string :: (x: $T, allocator := temp) -> string {
-    r, c := decimal_crush(x);
     sb: String_Builder;
     sb.allocator = allocator;
-    print_to_builder(*sb, "%", r);
+    r, c := decimal_crush(x);
+    print_to_builder(*sb, "%", formatFloat(r, trailing_width=2));
     defer free_buffers(*sb);
     if c == {
         case 0; append(*sb, "");
@@ -137,7 +141,7 @@ decimal_crush_as_string :: (x: $T, allocator := temp) -> string {
         case 7; append(*sb, "Z");
         case;   append(*sb, "AL"); // A lot
     }
-    return builder_to_string(*sb);
+    return builder_to_string(*sb, allocator=allocator);
 }
 
 println :: (fmt: string = "", args: ..Any) -> int {
@@ -809,7 +813,7 @@ Tick_Profile_Result :: struct {
     start: u64;
     hits: int;
 }
-tick_start :: (name: string) -> Tick_Profile_Result #expand #no_debug {
+tick_start :: (name: string = "") -> Tick_Profile_Result #expand #no_debug {
     r: Tick_Profile_Result;
     r.name = name;
     r.start = rdtsc();

@@ -6,7 +6,7 @@
 perlin_LUT_count :: 256;
 perlin_LUT_mask :: perlin_LUT_count - 1;
 perlin_LUT: [perlin_LUT_count]v3 = #run -> [perlin_LUT_count]v3 {
-    push_entropy(0x10237461723);
+    push_entropy(2016);
 
     r: [perlin_LUT_count]v3;
     for i : 0..perlin_LUT_count - 1 {
@@ -15,7 +15,7 @@ perlin_LUT: [perlin_LUT_count]v3 = #run -> [perlin_LUT_count]v3 {
     return r;
 }
 perlin_permutation_LUT: [2*perlin_LUT_count]int = #run -> [2*perlin_LUT_count]int {
-    push_entropy(0x10237461723);
+    push_entropy(2016);
 
     r: [2*perlin_LUT_count]int;
     for i : 0..perlin_LUT_count - 1 {
@@ -97,13 +97,13 @@ perlin :: (x: f32, y: f32, z: f32) -> f32 {
     f := lerp(c, d, v);
 
     val := lerp(e, f, w)*0.5 + 0.5;
-    assert(val <= 1.0 && val >= 0.0);
     return val; // [0..1]
 
     hash :: inline (x: int, y: int, z: int) -> int {
         return perlin_permutation_LUT[perlin_permutation_LUT[perlin_permutation_LUT[x] + y] + z];
     }
 }
+
 
 value_lookup_count :: 256;
 value_lookup_mask :: value_lookup_count - 1;
