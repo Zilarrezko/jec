@@ -515,15 +515,49 @@ normalize :: (v: *Vector2) {
 }
 
 MURMUR_SEED :u32: 0xa3c91521;
-
+murmur32 :: inline (s: string, seed: u32 = MURMUR_SEED) -> u32 {
+    return murmur32(s.data, s.count, seed);
+}
 murmur32 :: inline (x: $T, seed: u32 = MURMUR_SEED) -> u32 {
     d: []u8 = ---;
     d.data = cast(*u8)*x;
     d.count = size_of(T);
-    return murmur32(d, seed);
+    return murmur32(d.data, d.count, seed);
 }
-murmur32 :: (key: []u8, seed: u32 = MURMUR_SEED) -> u32 {
-    scrambler :: inline (k: u32) -> u32 {
+murmur32 :: (key: *void, len: int, seed: u32 = MURMUR_SEED) -> u32 {
+    h: u32 = seed;
+    tail: *u8 = cast(*u8)key + (len/4)*4;
+    p: *u32 = cast(*u32)key;
+
+    while cast(*u8)p < tail {
+        k: u32 = <<p;
+        k = scrambler(k);
+        h = h^k;
+        h = h <<< 13;
+        h = h*5 + 0xe6546b64;
+        p += 1;
+    }
+
+    t: u32;
+    if len & 3 == {
+        case 3;
+            t ^= cast(u32)(tail[2]) << 16;
+            #through;
+        case 2;
+            t ^= cast(u32)(tail[1]) << 8;
+            #through;
+        case 1;
+            t ^= cast(u32)(tail[0]);
+            t = scrambler(t);
+            h = h^t;
+    }
+    h ^= cast,trunc(u32)len;
+    h ^= h >> 16; h *= 0x85ebca6b;
+    h ^= h >> 13; h *= 0xc2b2ae35;
+    h ^= h >> 16;
+    return h;
+
+    scrambler :: (k: u32) -> u32 #expand {
         c1: u32 : 0xcc9e2d51;
         c2: u32 : 0x1b873593;
         r1: int : 15;
@@ -532,42 +566,85 @@ murmur32 :: (key: []u8, seed: u32 = MURMUR_SEED) -> u32 {
         k = k*c2;
         return k;
     }
+}
 
-    h: u32 = seed;
+XXHASH_SEED :: 0;
 
-    bytes: *u32 = cast(*u32)key.data;
-    for 0..key.count/4 - 1 {
-        k: u32 = bytes[it];
-        k = scrambler(k);
-        h = h^k;
-        h = h <<< 13;
-        h = h*5 + 0xe6546b64;
+xxhash64 :: inline (s: string, seed: u32 = XXHASH_SEED) -> u64 {
+    return xxhash64(s.data, s.count, seed);
+}
+xxhash64 :: inline (x: $T, seed: u32 = XXHASH_SEED) -> u64 {
+    return xxhash64(cast(*u8)*x, size_of(T), seed);
+}
+// Yoinked from demetri
+xxhash64 :: (key: *void, len: int, seed: u64 = XXHASH_SEED) -> u64 {
+    p1: u64 : 0x9e3779b185ebca87;
+    p2: u64 : 0xc2b2ae3d27d4eb4f;
+    p3: u64 : 0x165667b19e3779f9;
+    p4: u64 : 0x85ebca77c2b2ae63;
+    p5: u64 : 0x27d4eb2f165667c5;
+
+    h: u64 = seed;
+
+    s: [4]u64 = ---;
+    s[0] = h + p1 + p2;
+    s[1] = h + p2;
+    s[2] = h;
+    s[3] = h - p1;
+
+    // Bulk work
+    k32: *u64 = cast(*u64)key;
+    i: int;
+    while i < len/32 {
+        b: [4]u64 = ---;
+        b[0] = k32[i+0];
+        b[1] = k32[i+1];
+        b[2] = k32[i+2];
+        b[3] = k32[i+3];
+        for j : 0..3
+            b[j] = b[j]*p2 + s[j];
+        for j : 0..3
+            s[j] = (b[j] <<< 31)*p1;
+        i += 4;
     }
 
-    used_size := (key.count/4)*4;
-    rem := key;
-    rem.data += used_size;
-    rem.count -= used_size;
-    k1: u32;
-    if rem.count == {
-        case 3;
-            k1 ^= cast(u32)(rem[2]) << 16;
-            #through;
-        case 2;
-            k1 ^= cast(u32)(rem[1]) << 8;
-            #through;
-        case 1;
-            k1 ^= cast(u32)(rem[0]);
-            k1 = scrambler(k1);
-            h = h^k1;
+    // Mix 32 byte state down to 8 byte state
+    x: u64 = s[2] + p5;
+    if len > 32 {
+        x = (s[0] <<< 1) + (s[1] >>> 7) + (s[2] <<< 12) + (s[3] <<< 18);
+        for i : 0..3 {
+            ps: u64 = ((s[i]*p2) <<< 31)*p1;
+            x = (x ^ ps)*p1 + p4;
+        }
     }
-    h = h^cast(u32)key.count;
-    h = h^(h >> 16);
-    h = h*0x85ebca6b;
-    h = h^(h >> 13);
-    h = h*0xc2b2ae35;
-    h = h^(h >> 16);
-    return h;
+    x += cast(u64)len;
+
+    // 31 max bytes remain...
+    tail: *u8 = cast(*u8)key + (len/32)*32;
+    for i : 0 .. (len & 31)/8 - 1 { // No idea why there's a mask then a divide that can be a smaller mask there
+        b: u64 = (<<cast(*u64)tail)*p2;
+        b = ((b <<< 31)*p1) ^ x;
+        x = (b <<< 27)*p1 + p4;
+        tail += 8;
+    }
+
+    // 7 max bytes remain...
+    for i : 0 .. (len & 7)/4 - 1 {
+        b: u64 = x ^ ((<<cast(*u32)tail)*p1);
+        x = (b <<< 23)*p2 + p3;
+        tail += 4;
+    }
+
+    // 3 max bytes remain
+    for i : 0 .. (len & 3) {
+        b: u64 = x ^ (<<tail)*p5;
+        x = (b <<< 11)*p1;
+    }
+
+    x = (x ^ (x >> 33))*p2;
+    x = (x ^ (x >> 29))*p3;
+    x = (x ^ (x >> 32));
+    return x;
 }
 
 itoa :: (i: int) -> string {
