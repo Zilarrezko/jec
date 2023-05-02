@@ -94,11 +94,11 @@ operator - :: (r: Rect, v: v2i) -> Rect {
 
 Color :: struct {
     r, g, b, a: f32;
-    #place r;
+#place r;
     rgb: [3]f32;
-    #place r;
+#place r;
     rgba: [4]f32;
-    #place r;
+#place r;
     e: [4]f32;
 }
 
@@ -651,6 +651,43 @@ itoa :: (i: int) -> string {
     // Making this function because I don't think jon has one
     ascii_string: string = "                                 !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ ";
     return fast_slice(ascii_string, i, 1);
+}
+
+// Debug is going to look weird
+// Yoinked from Judah.
+set_allocator :: (t: *$T, allocator: Allocator) {
+    valid :: (i: *Type_Info) -> bool {
+        if i.type == {
+            case .ARRAY;
+                ia := cast(*Type_Info_Array)i;
+                return ia.array_type == .RESIZABLE;
+
+            case .STRUCT;
+                return true;
+
+            case;
+                return false;
+        }
+    }
+
+    #insert -> string {
+        i := cast(*Type_Info)T;
+        if i.type == {
+            case .ARRAY;
+                if valid(i)
+                    return "t.allocator = allocator;";
+            case .STRUCT;
+                is := cast(*Type_Info_Struct)i;
+                b: String_Builder;
+                for is.members if valid(it.type) {
+                    print_to_builder(*b, "set_allocator(*t.%, allocator);", it.name);
+                }
+                return builder_to_string(*b);
+            case;
+                return "";
+        }
+        return "";
+    }
 }
 
 ////////////////////////////////////////////////////
