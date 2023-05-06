@@ -661,13 +661,9 @@ set_allocator :: (t: *$T, allocator: Allocator) {
             case .ARRAY;
                 ia := cast(*Type_Info_Array)i;
                 return ia.array_type == .RESIZABLE;
-
-            case .STRUCT;
-                return true;
-
-            case;
-                return false;
+            case .STRUCT; return true;
         }
+        return false;
     }
 
     #insert -> string {
