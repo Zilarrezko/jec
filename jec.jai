@@ -246,7 +246,7 @@ nmul :: (a: u8, b: u8) -> u8 {
 }
 
 align_to :: (v: int, $align: int) -> int #modify {
-    return is_power_of_two(xx align);
+    return is_power_of_two(align);
 } {
 
     return (v + (align - 1)) & ~(align - 1);
