@@ -180,26 +180,31 @@ next_power_of_two :: inline (x : $T) -> T {
 }
 */
 
-next_power_of_two :: inline (n: u32) -> u32 {
-    r: u32 = n - 1;
-    r |= r >> 1;
-    r |= r >> 2;
-    r |= r >> 4;
-    r |= r >> 8;
-    r |= r >> 16;
-    return r + 1;
+ceil_power_of_two :: (n: int) -> int {
+    return next_power_of_two(n - 1);
+}
+next_power_of_two :: (n: int) -> int {
+    r: int;
+    #asm { // r = 1 << (64 - leading_zeros(n));
+        lz: gpr === c;
+        lzcnt lz, n;
+        dec   lz;
+        mov   r,  0x80000000_00000000;
+        shr   r,  lz; // lz must be pinned to c register
+    }
+    return r;
 }
 
-is_power_of_two :: inline (v: u32) -> bool {
+is_power_of_two :: inline (v: int) -> bool {
     return v && !(v & (v - 1));
 }
 
 round :: inline (n: f32) -> f32 {
-    return cast(f32)(cast(s64)(n + 0.5));
+    return cast(f32)(cast(int)(n + 0.5));
 }
 
 round :: inline (n: f64) -> f64 {
-    return cast(f64)(cast(s64)(n + 0.5));
+    return cast(f64)(cast(int)(n + 0.5));
 }
 
 sign :: (v: $T) -> T {
