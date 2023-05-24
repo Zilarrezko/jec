@@ -681,7 +681,7 @@ set_allocator :: (t: *$T, allocator: Allocator) {
                 is := cast(*Type_Info_Struct)i;
                 b: String_Builder;
                 for is.members if valid(it.type) {
-                    print_to_builder(*b, "set_allocator(*t.%, allocator);", it.name);
+                    print_to_builder(*b, "set_allocator(*t.%, allocator);\n", it.name);
                 }
                 return builder_to_string(*b);
             case;
