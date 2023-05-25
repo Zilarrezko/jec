@@ -691,6 +691,12 @@ set_allocator :: (t: *$T, allocator: Allocator) {
     }
 }
 
+read_entire_file :: (filename: string, allocator: Allocator) -> string, bool {
+    push_allocator(allocator);
+    file, ok := read_entire_file(filename);
+    return file, ok;
+}
+
 ////////////////////////////////////////////////////
 // Linked list things?
 // Doubly linked because why not
