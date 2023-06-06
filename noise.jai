@@ -44,6 +44,9 @@ perlin :: (v: v3) -> f32 {
     return inline perlin(v.x, v.y, v.z);
 }
 perlin :: (x: f32, y: f32, z: f32) -> f32 {
+    hash :: inline (x: int, y: int, z: int) -> int {
+        return perlin_permutation_LUT[perlin_permutation_LUT[perlin_permutation_LUT[x] + y] + z];
+    }
     ix0: int = cast(int)x;
     iy0: int = cast(int)y;
     iz0: int = cast(int)z;
@@ -98,10 +101,6 @@ perlin :: (x: f32, y: f32, z: f32) -> f32 {
 
     val := lerp(e, f, w)*0.5 + 0.5;
     return val; // [0..1]
-
-    hash :: inline (x: int, y: int, z: int) -> int {
-        return perlin_permutation_LUT[perlin_permutation_LUT[perlin_permutation_LUT[x] + y] + z];
-    }
 }
 
 

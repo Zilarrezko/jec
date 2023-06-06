@@ -519,17 +519,26 @@ normalize :: (v: *Vector2) {
     <<v *= 1.0/len;
 }
 
-MURMUR_SEED :u32: 0xa3c91521;
-murmur32 :: inline (s: string, seed: u32 = MURMUR_SEED) -> u32 {
+murmur32 :: inline (s: string, seed: u32 = 0) -> u32 {
     return murmur32(s.data, s.count, seed);
 }
-murmur32 :: inline (x: $T, seed: u32 = MURMUR_SEED) -> u32 {
+murmur32 :: inline (x: $T, seed: u32 = 0) -> u32 {
     d: []u8 = ---;
     d.data = cast(*u8)*x;
     d.count = size_of(T);
     return murmur32(d.data, d.count, seed);
 }
-murmur32 :: (key: *void, len: int, seed: u32 = MURMUR_SEED) -> u32 {
+murmur32 :: (key: *void, len: int, seed: u32 = 0) -> u32 {
+    scrambler :: (k: u32) -> u32 #expand {
+        c1: u32 : 0xcc9e2d51;
+        c2: u32 : 0x1b873593;
+        r1: int : 15;
+        k = k*c1;
+        k = k <<< r1;
+        k = k*c2;
+        return k;
+    }
+
     h: u32 = seed;
     tail: *u8 = cast(*u8)key + (len/4)*4;
     p: *u32 = cast(*u32)key;
@@ -561,28 +570,16 @@ murmur32 :: (key: *void, len: int, seed: u32 = MURMUR_SEED) -> u32 {
     h ^= h >> 13; h *= 0xc2b2ae35;
     h ^= h >> 16;
     return h;
-
-    scrambler :: (k: u32) -> u32 #expand {
-        c1: u32 : 0xcc9e2d51;
-        c2: u32 : 0x1b873593;
-        r1: int : 15;
-        k = k*c1;
-        k = k <<< r1;
-        k = k*c2;
-        return k;
-    }
 }
 
-XXHASH_SEED :: 0;
-
-xxhash64 :: inline (s: string, seed: u32 = XXHASH_SEED) -> u64 {
+xxhash64 :: inline (s: string, seed: u32 = 0) -> u64 {
     return xxhash64(s.data, s.count, seed);
 }
-xxhash64 :: inline (x: $T, seed: u32 = XXHASH_SEED) -> u64 {
+xxhash64 :: inline (x: $T, seed: u32 = 0) -> u64 {
     return xxhash64(cast(*u8)*x, size_of(T), seed);
 }
 // Yoinked from demetri
-xxhash64 :: (key: *void, len: int, seed: u64 = XXHASH_SEED) -> u64 {
+xxhash64 :: (key: *void, len: int, seed: u64 = 0) -> u64 {
     p1: u64 : 0x9e3779b185ebca87;
     p2: u64 : 0xc2b2ae3d27d4eb4f;
     p3: u64 : 0x165667b19e3779f9;
@@ -626,7 +623,7 @@ xxhash64 :: (key: *void, len: int, seed: u64 = XXHASH_SEED) -> u64 {
 
     // 31 max bytes remain...
     tail: *u8 = cast(*u8)key + (len/32)*32;
-    for i : 0 .. (len & 31)/8 - 1 { // No idea why there's a mask then a divide that can be a smaller mask there
+    for i : 0 .. (len & 31)/8 - 1 {
         b: u64 = (<<cast(*u64)tail)*p2;
         b = ((b <<< 31)*p1) ^ x;
         x = (b <<< 27)*p1 + p4;
